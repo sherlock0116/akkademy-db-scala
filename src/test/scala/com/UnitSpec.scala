@@ -1,6 +1,6 @@
-package com.akkademy
+package com
 
-import org.scalatest.{FunSpec, Inside, Inspectors, Matchers, OptionValues}
+import org.scalatest._
 
 /**
  * @Description TODO

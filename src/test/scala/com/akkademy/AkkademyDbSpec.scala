@@ -2,6 +2,7 @@ package com.akkademy
 
 import akka.actor.ActorSystem
 import akka.testkit.TestActorRef
+import com.UnitSpec
 import com.akkademy.messages.SetRequest
 
 /**

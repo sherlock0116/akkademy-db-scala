@@ -1,8 +1,8 @@
 package com.akkademy
 
-import akka.actor.Actor
+import akka.actor.{Actor, Status}
 import akka.event.Logging
-import com.akkademy.messages.SetRequest
+import com.akkademy.messages.{GetRequest, KeyNotFoundException, SetRequest}
 
 import scala.collection.mutable
 
@@ -21,8 +21,19 @@ class AkkademyDb extends Actor {
 		case SetRequest(k,v) =>
 			log.info("received SetRequest - key: {} value: {}", k, v)
 			map.put(k, v)
+			sender() ! Status.Success
+		
+		case GetRequest(k) =>
+			log.info("received GetRequest - key: {}", k)
+			val optionValue: Option[Object] = map.get(k)
+			optionValue match {
+				case Some(value) => sender() ! value
+				case None => sender() ! Status.Failure(new KeyNotFoundException(k))
+			}
+		
 		case o =>
 			log.info("received unknown message: {}", o)
+			Status.Failure(new ClassNotFoundException)
 	}
 	
 	def getValue(key: String): Option[Object] = map.get(key)
