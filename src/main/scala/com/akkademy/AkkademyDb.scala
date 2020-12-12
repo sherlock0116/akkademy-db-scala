@@ -1,8 +1,10 @@
 package com.akkademy
 
+import java.util.concurrent.locks.ReentrantLock
+
 import akka.actor.{Actor, Status}
 import akka.event.Logging
-import com.akkademy.messages.{GetRequest, KeyNotFoundException, SetRequest}
+import com.akkademy.messages.{DeleteRequest, GetRequest, KeyAlreadyExistsException, KeyNotFoundException, SetIfNotExists, SetRequest}
 
 import scala.collection.mutable
 
@@ -13,12 +15,14 @@ import scala.collection.mutable
  */
 class AkkademyDb extends Actor {
 	
+	private val setLock = new ReentrantLock()
+	private val deleteLock = new ReentrantLock()
 	private val log = Logging(context.system, this)
 	private val map: mutable.Map[String, Object] = new mutable.HashMap[String, Object]
 	
 	override def receive: Receive = {
 		
-		case SetRequest(k,v) =>
+		case SetRequest(k, v) =>
 			log.info("received SetRequest - key: {} value: {}", k, v)
 			map.put(k, v)
 			sender() ! Status.Success
@@ -29,6 +33,39 @@ class AkkademyDb extends Actor {
 			optionValue match {
 				case Some(value) => sender() ! value
 				case None => sender() ! Status.Failure(new KeyNotFoundException(k))
+			}
+		
+		case SetIfNotExists(k, v) =>
+			setLock.lock()
+			try {
+				log.info("received SetIfNotExists - key: {} value: {}", k, v)
+				if (map.keySet.contains(k)) {
+					sender() ! Status.Failure(new KeyAlreadyExistsException(k))
+				}
+				else {
+					map.put(k, v)
+					sender() ! Status.Success
+				}
+			} catch {
+				case e: Exception => throw e
+			} finally {
+				setLock.unlock()
+			}
+		
+		case DeleteRequest(k) =>
+			deleteLock.lock()
+			try {
+				log.info("received DeleteRequest - key: {}", k)
+				if (map.keySet.contains(k)) {
+					map -= k
+					sender() ! Status.Success
+				} else {
+					sender() ! Status.Failure(new KeyNotFoundException(k))
+				}
+			} catch {
+				case e: Exception => throw e
+			} finally {
+				deleteLock.unlock()
 			}
 		
 		case o =>

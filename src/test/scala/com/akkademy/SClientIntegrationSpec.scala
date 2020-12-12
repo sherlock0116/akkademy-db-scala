@@ -1,6 +1,7 @@
 package com.akkademy
 
 import com.UnitSpec
+import com.akkademy.messages.{KeyAlreadyExistsException, KeyNotFoundException}
 import com.akkademy.sclient.SClient
 
 import scala.concurrent.duration.DurationInt
@@ -21,6 +22,24 @@ class SClientIntegrationSpec extends UnitSpec {
 			client.set("123", new Integer(123))
 			val future: Future[Any] = client.get("123")
 			Await.result(future, 5 seconds) shouldEqual(123)
+		}
+		
+		it("should fail because key exists") {
+			intercept[KeyAlreadyExistsException](
+				Await.result(client.setIfNotExists("123", "wood-man"), 2 seconds)
+			)
+		}
+		
+		it("should place key/value into map") {
+			client.setIfNotExists("name", "tester")
+			Await.result(client.get("name"), 2 seconds) shouldBe("tester")
+		}
+		
+		it("shuold delete the key which exists") {
+			client.delete("name")
+			intercept[KeyNotFoundException](
+				Await.result(client.get("name").mapTo[String], 2 seconds)
+			)
 		}
 	}
 	

@@ -8,3 +8,4 @@ package com.akkademy.messages
 sealed abstract class DbException(msg: String) extends Exception(msg)
 
 case class KeyNotFoundException(msg: String) extends DbException(msg)
+case class KeyAlreadyExistsException(msg: String) extends DbException(msg)

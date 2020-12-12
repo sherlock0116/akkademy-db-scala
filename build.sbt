@@ -2,7 +2,7 @@ name := "akkademy-db"
 
 organization := "com.github.sherlock.akkademy-db"
 
-version := "1.0-SNAPSHOT"
+version := "1.1-SNAPSHOT"
 
 javacOptions ++= Seq("-source","1.8","-target","1.8")
 
