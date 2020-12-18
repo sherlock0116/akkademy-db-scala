@@ -2,76 +2,77 @@ package com.akkademy
 
 import java.util.concurrent.locks.ReentrantLock
 
-import akka.actor.{Actor, Status}
-import akka.event.Logging
-import com.akkademy.messages.{DeleteRequest, GetRequest, KeyAlreadyExistsException, KeyNotFoundException, SetIfNotExists, SetRequest}
+import com.akkademy.messages.{KeyAlreadyExistsException, KeyNotExistsException}
 
 import scala.collection.mutable
+import scala.util.{Failure, Success, Try}
 
 /**
  * @Description TODO
  * @Author sherlock
  * @Date
  */
-class AkkademyDb extends Actor {
+class AkkademyDb private {
 	
 	private val setLock = new ReentrantLock()
 	private val deleteLock = new ReentrantLock()
-	private val log = Logging(context.system, this)
 	private val map: mutable.Map[String, Object] = new mutable.HashMap[String, Object]
 	
-	override def receive: Receive = {
-		
-		case SetRequest(k, v) =>
-			log.info("received SetRequest - key: {} value: {}", k, v)
-			map.put(k, v)
-			sender() ! Status.Success
-		
-		case GetRequest(k) =>
-			log.info("received GetRequest - key: {}", k)
-			val optionValue: Option[Object] = map.get(k)
-			optionValue match {
-				case Some(value) => sender() ! value
-				case None => sender() ! Status.Failure(new KeyNotFoundException(k))
+	def saveIfNotExists(key: String, value: Object): Try[String] = {
+		setLock.lock()
+		try {
+			if (map contains key) {
+				Failure(KeyAlreadyExistsException(key))
+			} else {
+				map += (key -> value)
+				Success(key)
 			}
-		
-		case SetIfNotExists(k, v) =>
-			setLock.lock()
-			try {
-				log.info("received SetIfNotExists - key: {} value: {}", k, v)
-				if (map.keySet.contains(k)) {
-					sender() ! Status.Failure(new KeyAlreadyExistsException(k))
-				}
-				else {
-					map.put(k, v)
-					sender() ! Status.Success
-				}
-			} catch {
-				case e: Exception => throw e
-			} finally {
-				setLock.unlock()
-			}
-		
-		case DeleteRequest(k) =>
-			deleteLock.lock()
-			try {
-				log.info("received DeleteRequest - key: {}", k)
-				if (map.keySet.contains(k)) {
-					map -= k
-					sender() ! Status.Success
-				} else {
-					sender() ! Status.Failure(new KeyNotFoundException(k))
-				}
-			} catch {
-				case e: Exception => throw e
-			} finally {
-				deleteLock.unlock()
-			}
-		
-		case o =>
-			log.info("received unknown message: {}", o)
-			Status.Failure(new ClassNotFoundException)
+		} catch {
+			case e: Exception => throw e
+		} finally {
+			setLock.unlock()
+		}
 	}
 	
-	def getValue(key: String): Option[Object] = map.get(key)
+	def update(key: String, value: Object): Try[String] = {
+		setLock.lock()
+		try {
+			if (map contains key) {
+				map(key) = value
+				Success(key)
+			} else {
+				Failure(KeyNotExistsException(key))
+			}
+		} catch {
+			case e: Exception => throw e;
+		} finally {
+			setLock.unlock()
+		}
+	}
+	
+	def delete(key: String): Try[String] = {
+		if (map contains key) {
+			map -= key
+			Success(key)
+		} else {
+			Failure(KeyNotExistsException(key))
+		}
+	}
+	
+	def get(key: String): Try[Option[Object]] = {
+		if (map contains key) {
+			val option: Option[Object] = map.get(key)
+			Success(option)
+		} else {
+			Failure(KeyNotExistsException(key))
+		}
+	}
+}
+
+object AkkademyDb {
+	
+	private lazy val db = new AkkademyDb
+	def getInstance: AkkademyDb = db
+	
+	def getValue(k: String): Option[Object] = getInstance.map.get(k)
 }

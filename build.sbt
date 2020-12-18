@@ -1,8 +1,8 @@
-name := "akkademy-db"
+name := "akkademy-db-scala"
 
 organization := "com.github.sherlock.akkademy-db"
 
-version := "1.1-SNAPSHOT"
+version := "1.2-SNAPSHOT"
 
 javacOptions ++= Seq("-source","1.8","-target","1.8")
 
@@ -13,6 +13,7 @@ libraryDependencies ++= Seq (
 	"org.scalatest" %% "scalatest" % "3.1.1" % "test",
 	"org.projectlombok" % "lombok" % "1.16.20" % "provided",
 	"com.typesafe.akka" %% "akka-actor" % "2.5.31",
+	"com.typesafe.akka" %% "akka-actor-typed" % "2.5.31",
 	"com.typesafe.akka" %% "akka-remote" % "2.5.31",
 	"com.typesafe.akka" %% "akka-testkit" % "2.5.31" % "test"
 )

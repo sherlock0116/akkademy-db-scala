@@ -1,7 +1,7 @@
 package com.akkademy
 
 import com.UnitSpec
-import com.akkademy.messages.{KeyAlreadyExistsException, KeyNotFoundException}
+import com.akkademy.messages.{KeyAlreadyExistsException, KeyNotExistsException}
 import com.akkademy.sclient.SClient
 
 import scala.concurrent.duration.DurationInt
@@ -37,7 +37,7 @@ class SClientIntegrationSpec extends UnitSpec {
 		
 		it("shuold delete the key which exists") {
 			client.delete("name")
-			intercept[KeyNotFoundException](
+			intercept[KeyNotExistsException](
 				Await.result(client.get("name").mapTo[String], 2 seconds)
 			)
 		}
